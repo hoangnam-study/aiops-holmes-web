@@ -1,0 +1,44 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      MONGODB_URI: mongodb://mongo:27017/holmes-ui
+      APP_SECRET: ${APP_SECRET:-replace-with-a-long-random-string}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-holmes-admin}
+      HOLMES_API_URL: ${HOLMES_API_URL:-https://holmes.observestack.fis-cloud.xplat.online}
+      HOLMES_API_KEY: ${HOLMES_API_KEY:-}
+      HOLMES_API_VERIFY_SSL: ${HOLMES_API_VERIFY_SSL:-false}
+      HOLMES_STREAM_IDLE_TIMEOUT_MS: ${HOLMES_STREAM_IDLE_TIMEOUT_MS:-120000}
+      ALERT_INGEST_TOKEN: ${ALERT_INGEST_TOKEN:-}
+      DEFAULT_MODEL: ${DEFAULT_MODEL:-cloud-escalate}
+      DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-Asia/Ho_Chi_Minh}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+
+volumes:
+  mongo-data:
