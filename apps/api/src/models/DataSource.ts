@@ -3,10 +3,29 @@ import { Schema, model } from "mongoose";
 export interface DataSourceDoc {
   key: string;
   title: string;
-  category: "Kubernetes" | "Metrics" | "Logs" | "Traces" | "Profiles" | "Dashboards" | "Future";
+  category:
+    | "Kubernetes"
+    | "Metrics"
+    | "Logs"
+    | "Traces"
+    | "Profiles"
+    | "Dashboards"
+    | "Cloud"
+    | "ITSM"
+    | "SCM"
+    | "Database"
+    | "Queue"
+    | "CI/CD"
+    | "Custom"
+    | "Future";
   description: string;
   status: "connected" | "configured" | "unknown" | "failed";
+  enabled: boolean;
   toolsetKey?: string;
+  capabilities: string[];
+  docsUrl?: string;
+  configSchema?: Record<string, unknown>;
+  secretFields: string[];
   verifyPrompt: string;
   setupMarkdown: string;
   lastVerifiedAt?: Date;
@@ -22,7 +41,12 @@ const dataSourceSchema = new Schema<DataSourceDoc>(
     category: { type: String, required: true },
     description: { type: String, required: true },
     status: { type: String, enum: ["connected", "configured", "unknown", "failed"], default: "unknown" },
+    enabled: { type: Boolean, default: true, index: true },
     toolsetKey: { type: String },
+    capabilities: { type: [String], default: [] },
+    docsUrl: { type: String },
+    configSchema: { type: Schema.Types.Mixed },
+    secretFields: { type: [String], default: [] },
     verifyPrompt: { type: String, required: true },
     setupMarkdown: { type: String, required: true },
     lastVerifiedAt: { type: Date },

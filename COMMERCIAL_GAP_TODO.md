@@ -20,7 +20,7 @@ Status legend: `[ ] todo`, `[~] in progress`, `[x] done`.
 
 ## 2. Automatic RCA for Every Alert
 
-- [ ] Status: todo
+- [x] Status: done
 - Priority: P0
 - Goal: Trigger Holmes investigations automatically when alerts arrive and store the RCA result on the alert/incident.
 - Suggested first slice:
@@ -30,10 +30,11 @@ Status legend: `[ ] todo`, `[~] in progress`, `[x] done`.
   - Link generated RCA to alert and incident records.
 - Notes:
   - Current code mostly calls Holmes from freeform chat.
+  - Implemented automatic RCA queueing from Alertmanager ingestion, Mongo job locking, RCA prompt generation, persisted RCA state/results, and manual retry from the Incidents UI.
 
 ## 3. Investigation Timelines and Historical Analysis
 
-- [ ] Status: todo
+- [x] Status: done
 - Priority: P0
 - Goal: Show replayable incident timelines with alert events, tool calls, evidence, deploy/config changes, comments, and final RCA.
 - Suggested first slice:
@@ -43,10 +44,11 @@ Status legend: `[ ] todo`, `[~] in progress`, `[x] done`.
   - Add event filters by type, source, and severity.
 - Notes:
   - `ChatEvent` exists today, but it is scoped to chat messages.
+  - Implemented `IncidentEvent` timeline storage, event recording for alert ingestion/RCA/status changes, incident detail timeline API, and timeline rendering in the Incidents UI.
 
 ## 4. Slack and Microsoft Teams Bot
 
-- [ ] Status: todo
+- [x] Status: done
 - Priority: P1
 - Goal: Let users tag Holmes in Slack/Teams, ask follow-up questions, and trigger investigations from alert threads.
 - Suggested first slice:
@@ -56,10 +58,11 @@ Status legend: `[ ] todo`, `[~] in progress`, `[x] done`.
   - Persist bot-originated conversations as chat threads.
 - Notes:
   - Scheduled prompts only support a simple Slack webhook today.
+  - Implemented secured Slack and Teams bot webhook endpoints, prompt extraction, Holmes execution, shared chat-thread persistence, and provider-shaped responses.
 
 ## 5. Notification Sinks and Alert Routing
 
-- [ ] Status: todo
+- [x] Status: done
 - Priority: P1
 - Goal: Route enriched alerts and investigation results to Slack, Teams, PagerDuty, Opsgenie, Jira, ServiceNow, and generic webhooks.
 - Suggested first slice:
@@ -69,10 +72,11 @@ Status legend: `[ ] todo`, `[~] in progress`, `[x] done`.
   - Add a routing rules UI.
 - Notes:
   - Current scheduled prompt destinations are `none` or `slackWebhook`.
+  - Implemented reusable notification sinks, routing rules, delivery logs, notifications UI, and dispatch for alert/RCA/status incident events.
 
 ## 6. Multi-User, SSO, RBAC, and Audit Logs
 
-- [ ] Status: todo
+- [x] Status: done
 - Priority: P0
 - Goal: Replace single-admin auth with team-ready access control and an auditable security model.
 - Suggested first slice:
@@ -82,10 +86,11 @@ Status legend: `[ ] todo`, `[~] in progress`, `[x] done`.
   - Scope chats, incidents, sources, and settings by user/team permissions.
 - Notes:
   - Current auth is a single-admin cookie session.
+  - Implemented admin/operator/viewer roles, admin user management, optional OIDC SSO with PKCE, role-gated routes/sidebar, and audit trail for privileged actions.
 
 ## 7. Full Data Source and Toolset Catalog
 
-- [ ] Status: todo
+- [x] Status: done
 - Priority: P1
 - Goal: Manage the full Holmes toolset/catalog surface, including cloud, observability, databases, ITSM, knowledge bases, Kubernetes, CI/CD, MCP, HTTP, and custom connectors.
 - Suggested first slice:
@@ -95,10 +100,11 @@ Status legend: `[ ] todo`, `[~] in progress`, `[x] done`.
   - Add exportable Helm/GitOps config snippets.
 - Notes:
   - Current data sources are read-mostly and seeded from a small hardcoded list.
+  - Implemented richer catalog metadata, expanded built-in sources, data-source create/edit/delete/disable APIs, editable Data Sources UI, and migration defaults for existing records.
 
 ## 8. Multi-Cluster and Agent Management
 
-- [ ] Status: todo
+- [x] Status: done
 - Priority: P1
 - Goal: Register and manage multiple clusters/agents with status, version, health, data source reachability, and scoped investigations.
 - Suggested first slice:
@@ -108,10 +114,11 @@ Status legend: `[ ] todo`, `[~] in progress`, `[x] done`.
   - Add cluster picker in chat, alerts, incidents, and data sources.
 - Notes:
   - Current settings point to one Holmes API URL.
+  - Implemented Cluster/Agent models, encrypted enrollment tokens, public agent heartbeat, cluster/agent APIs, Clusters UI, and audit logs for cluster registration/token rotation.
 
 ## 9. Holmes Operator and HealthCheck UI
 
-- [ ] Status: todo
+- [x] Status: done
 - Priority: P1
 - Goal: Manage Kubernetes-native Holmes `HealthCheck` and `ScheduledHealthCheck` resources from the UI.
 - Suggested first slice:
@@ -121,10 +128,11 @@ Status legend: `[ ] todo`, `[~] in progress`, `[x] done`.
   - Add deployment verification workflow for CI/CD gates.
 - Notes:
   - Current scheduled prompts are Node cron jobs, not Holmes Operator CRDs.
+  - Implemented HealthCheck/HealthCheckRun models, Holmes-backed run execution, Health Checks API, audit logging, and Health Checks UI with run history.
 
 ## 10. Runbook Catalog and Guided Execution
 
-- [ ] Status: todo
+- [x] Status: done
 - Priority: P1
 - Goal: Add built-in/custom runbook catalog management with automatic matching, step-by-step execution, evidence capture, and checklist reports.
 - Suggested first slice:
@@ -134,6 +142,7 @@ Status legend: `[ ] todo`, `[~] in progress`, `[x] done`.
   - Render per-step status, evidence, skipped steps, and remediation recommendations.
 - Notes:
   - Current Knowledge entries are generic prompt injections, not structured runbooks.
+  - Implemented Runbook/RunbookExecution models, runbook CRUD API, Holmes-guided execution service, Runbooks UI, execution history, and audit logging.
 
 ## Working Order
 

@@ -1,7 +1,9 @@
 export interface User {
   id: string;
   email: string;
-  role: "admin";
+  role: "admin" | "operator" | "viewer";
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Settings {
@@ -92,6 +94,24 @@ export interface Alert {
   updatedAt: string;
 }
 
+export interface IncidentEvent {
+  _id: string;
+  incidentId: string;
+  eventType:
+    | "alert_ingested"
+    | "status_changed"
+    | "rca_queued"
+    | "rca_started"
+    | "rca_completed"
+    | "rca_failed"
+    | "comment";
+  title: string;
+  detail?: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DataSource {
   _id: string;
   key: string;
@@ -99,7 +119,13 @@ export interface DataSource {
   category: string;
   description: string;
   status: "connected" | "configured" | "unknown" | "failed";
+  enabled: boolean;
   toolsetKey?: string;
+  capabilities: string[];
+  docsUrl?: string;
+  configSchema?: Record<string, unknown>;
+  secretFields: string[];
+  verifyPrompt: string;
   lastVerifiedAt?: string;
   verificationMessage?: string;
 }
@@ -143,6 +169,121 @@ export interface ScheduledPromptRun {
   error?: string;
   metadata?: Record<string, unknown>;
   toolEvents: Record<string, unknown>[];
+}
+
+export interface NotificationSink {
+  _id: string;
+  name: string;
+  type: "webhook" | "slackWebhook" | "teamsWebhook";
+  enabled: boolean;
+  hasUrl: boolean;
+  updatedAt: string;
+}
+
+export interface RoutingRule {
+  _id: string;
+  name: string;
+  enabled: boolean;
+  eventType: "alert_ingested" | "rca_completed" | "rca_failed" | "incident_status_changed";
+  sinkId: string;
+  severity: "critical" | "warning" | "info" | "unknown" | "any";
+  status?: string;
+  updatedAt: string;
+}
+
+export interface NotificationDelivery {
+  _id: string;
+  sinkId: string;
+  routingRuleId?: string;
+  eventType: string;
+  status: "success" | "error";
+  target: string;
+  responseStatus?: number;
+  responseBody?: string;
+  error?: string;
+  createdAt: string;
+}
+
+export interface AuditLog {
+  _id: string;
+  actorEmail?: string;
+  action: string;
+  targetType: string;
+  targetId?: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface Cluster {
+  _id: string;
+  name: string;
+  slug: string;
+  environment?: string;
+  status: "unknown" | "healthy" | "degraded" | "offline";
+  apiUrl?: string;
+  lastHeartbeatAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Agent {
+  _id: string;
+  clusterId: string;
+  agentId: string;
+  version?: string;
+  status: "healthy" | "degraded" | "offline";
+  metadata: Record<string, unknown>;
+  lastHeartbeatAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HealthCheck {
+  _id: string;
+  title: string;
+  prompt: string;
+  scope?: string;
+  labels: string[];
+  enabled: boolean;
+  alertMode: "none" | "notify_on_failure" | "always_notify";
+  lastRunAt?: string;
+  lastStatus?: "success" | "error" | "running";
+  updatedAt: string;
+}
+
+export interface HealthCheckRun {
+  _id: string;
+  healthCheckId: string;
+  status: "running" | "success" | "error";
+  startedAt: string;
+  completedAt?: string;
+  answer?: string;
+  error?: string;
+}
+
+export interface Runbook {
+  _id: string;
+  title: string;
+  description?: string;
+  content: string;
+  source: "manual" | "git" | "uploaded";
+  sourceRef?: string;
+  matchers: string[];
+  tags: string[];
+  enabled: boolean;
+  updatedAt: string;
+}
+
+export interface RunbookExecution {
+  _id: string;
+  runbookId: string;
+  status: "running" | "success" | "error";
+  incidentId?: string;
+  scope?: string;
+  startedAt: string;
+  completedAt?: string;
+  report?: string;
+  error?: string;
 }
 
 export interface StreamEvent {

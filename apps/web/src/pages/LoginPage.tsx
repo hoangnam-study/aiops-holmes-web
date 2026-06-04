@@ -10,6 +10,8 @@ import {
   Typography
 } from "@mui/material";
 import PsychologyIcon from "@mui/icons-material/Psychology";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "../api/client";
 import { useAuth } from "../hooks/useAuth";
 
 export default function LoginPage() {
@@ -18,6 +20,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("holmes-admin");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const oidcQuery = useQuery({
+    queryKey: ["oidc-status"],
+    queryFn: () => apiFetch<{ enabled: boolean }>("/api/auth/oidc/status"),
+    retry: false
+  });
 
   if (user) return <Navigate to="/chat" replace />;
 
@@ -61,6 +68,11 @@ export default function LoginPage() {
           <Button type="submit" variant="contained" disabled={loading} size="large">
             Sign in
           </Button>
+          {oidcQuery.data?.enabled ? (
+            <Button component="a" href="/api/auth/oidc/start" variant="outlined" size="large">
+              Sign in with SSO
+            </Button>
+          ) : null}
         </Stack>
       </Paper>
     </Box>

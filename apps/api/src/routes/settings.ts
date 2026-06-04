@@ -7,6 +7,7 @@ import { asyncHandler, ApiError } from "../utils/errors.js";
 import { getHolmesConnection, getSettings, toPublicSettings, updateSettings } from "../services/settingsService.js";
 import { HolmesClient } from "../services/holmesClient.js";
 import { updateAdminPassword } from "../services/adminService.js";
+import { recordAuditLog } from "../services/auditService.js";
 
 const router = Router();
 
@@ -41,6 +42,19 @@ router.patch(
       await updateAdminPassword(String(user._id), input.newAdminPassword);
     }
     const settings = await updateSettings(input);
+    await recordAuditLog({
+      actor: req.user,
+      action: "settings.updated",
+      targetType: "settings",
+      targetId: "default",
+      metadata: {
+        holmesApiUrl: Boolean(input.holmesApiUrl),
+        holmesApiKeyChanged: Boolean(input.holmesApiKey || input.clearHolmesApiKey),
+        defaultModel: input.defaultModel,
+        timezone: input.timezone,
+        passwordChanged: Boolean(input.newAdminPassword)
+      }
+    });
     res.json({ settings: toPublicSettings(settings) });
   })
 );

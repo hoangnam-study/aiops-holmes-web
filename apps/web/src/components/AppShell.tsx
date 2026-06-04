@@ -14,10 +14,15 @@ import {
 } from "@mui/material";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
+import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import StorageIcon from "@mui/icons-material/Storage";
 import ScheduleIcon from "@mui/icons-material/Schedule";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
+import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
+import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
@@ -31,10 +36,15 @@ const drawerWidth = 244;
 const navItems = [
   { label: "Chat", path: "/chat", icon: <ChatBubbleOutlineIcon fontSize="small" /> },
   { label: "Incidents", path: "/incidents", icon: <ReportProblemOutlinedIcon fontSize="small" /> },
-  { label: "Data Sources", path: "/data-sources", icon: <StorageIcon fontSize="small" /> },
-  { label: "Scheduled Prompts", path: "/scheduled-prompts", icon: <ScheduleIcon fontSize="small" /> },
-  { label: "Knowledge", path: "/knowledge", icon: <MenuBookIcon fontSize="small" /> },
-  { label: "Settings", path: "/settings", icon: <SettingsIcon fontSize="small" /> }
+  { label: "Clusters", path: "/clusters", icon: <HubOutlinedIcon fontSize="small" />, roles: ["admin", "operator"] },
+  { label: "Data Sources", path: "/data-sources", icon: <StorageIcon fontSize="small" />, roles: ["admin", "operator"] },
+  { label: "Scheduled Prompts", path: "/scheduled-prompts", icon: <ScheduleIcon fontSize="small" />, roles: ["admin", "operator"] },
+  { label: "Health Checks", path: "/health-checks", icon: <FactCheckOutlinedIcon fontSize="small" />, roles: ["admin", "operator"] },
+  { label: "Notifications", path: "/notifications", icon: <NotificationsOutlinedIcon fontSize="small" />, roles: ["admin", "operator"] },
+  { label: "Knowledge", path: "/knowledge", icon: <MenuBookIcon fontSize="small" />, roles: ["admin", "operator"] },
+  { label: "Runbooks", path: "/runbooks", icon: <ChecklistOutlinedIcon fontSize="small" />, roles: ["admin", "operator"] },
+  { label: "Admin", path: "/admin", icon: <ManageAccountsOutlinedIcon fontSize="small" />, roles: ["admin"] },
+  { label: "Settings", path: "/settings", icon: <SettingsIcon fontSize="small" />, roles: ["admin"] }
 ];
 
 export default function AppShell() {
@@ -99,7 +109,7 @@ export default function AppShell() {
           <Divider />
 
           <List dense sx={{ flex: 1 }}>
-            {navItems.map((item) => {
+            {navItems.filter((item) => !item.roles || item.roles.includes(user?.role ?? "viewer")).map((item) => {
               const selected = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
               return (
                 <ListItemButton
@@ -135,7 +145,7 @@ export default function AppShell() {
                 {user?.email}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Admin
+                {user?.role ?? "user"}
               </Typography>
             </Box>
             <Tooltip title="Sign out">

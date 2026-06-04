@@ -9,6 +9,7 @@ const colors: Record<string, "success" | "warning" | "error" | "default" | "info
   error: "error",
   running: "warning",
   active: "success",
+  disabled: "default",
   open: "error",
   acknowledged: "warning",
   resolved: "success",
@@ -19,7 +20,10 @@ const colors: Record<string, "success" | "warning" | "error" | "default" | "info
   not_started: "default",
   queued: "info",
   investigating: "warning",
-  completed: "success"
+  completed: "success",
+  healthy: "success",
+  degraded: "warning",
+  offline: "error"
 };
 
 export default function StatusPill({ value }: { value?: string }) {

@@ -1,6 +1,8 @@
 import { DataSource, type DataSourceDoc } from "../models/DataSource.js";
 
-type SeedSource = Omit<DataSourceDoc, "createdAt" | "updatedAt">;
+type SeedSource =
+  Omit<DataSourceDoc, "createdAt" | "updatedAt" | "enabled" | "capabilities" | "secretFields"> &
+  Partial<Pick<DataSourceDoc, "enabled" | "capabilities" | "secretFields">>;
 
 const defaultSetup = (toolset: string) => `### Helm values
 
@@ -87,17 +89,103 @@ const seeds: SeedSource[] = [
   {
     key: "datadog",
     title: "Datadog",
-    category: "Future",
-    description: "Future Datadog metrics and logs integration.",
+    category: "Metrics",
+    description: "Datadog metrics, monitors, events, and logs integration.",
     status: "unknown",
     toolsetKey: "datadog",
     verifyPrompt: "Check whether Datadog is configured for Holmes. If not, explain the missing setup.",
     setupMarkdown: defaultSetup("datadog")
+  },
+  {
+    key: "aws-cloudwatch",
+    title: "AWS CloudWatch",
+    category: "Cloud",
+    description: "CloudWatch metrics, logs, and AWS resource context.",
+    status: "unknown",
+    toolsetKey: "aws/cloudwatch",
+    verifyPrompt: "Check whether AWS CloudWatch is configured for Holmes and summarize available telemetry.",
+    setupMarkdown: defaultSetup("aws")
+  },
+  {
+    key: "azure-monitor",
+    title: "Azure Monitor",
+    category: "Cloud",
+    description: "Azure metrics, logs, and resource context.",
+    status: "unknown",
+    toolsetKey: "azure/monitor",
+    verifyPrompt: "Check whether Azure Monitor is configured for Holmes and summarize available telemetry.",
+    setupMarkdown: defaultSetup("azure")
+  },
+  {
+    key: "github",
+    title: "GitHub",
+    category: "SCM",
+    description: "Pull requests, deployments, commits, issues, and release context.",
+    status: "unknown",
+    toolsetKey: "github",
+    verifyPrompt: "Check whether GitHub is configured for Holmes and summarize accessible repositories or recent deployment context.",
+    setupMarkdown: defaultSetup("github")
+  },
+  {
+    key: "jira",
+    title: "Jira",
+    category: "ITSM",
+    description: "Issues, incidents, changes, and service-management context.",
+    status: "unknown",
+    toolsetKey: "jira",
+    verifyPrompt: "Check whether Jira is configured for Holmes and summarize accessible project context.",
+    setupMarkdown: defaultSetup("jira")
+  },
+  {
+    key: "servicenow",
+    title: "ServiceNow",
+    category: "ITSM",
+    description: "Incidents, changes, CMDB, and service-management context.",
+    status: "unknown",
+    toolsetKey: "servicenow",
+    verifyPrompt: "Check whether ServiceNow is configured for Holmes and summarize accessible incident/change context.",
+    setupMarkdown: defaultSetup("servicenow")
+  },
+  {
+    key: "postgres",
+    title: "PostgreSQL",
+    category: "Database",
+    description: "Database health, slow queries, locks, and connection evidence.",
+    status: "unknown",
+    toolsetKey: "postgres",
+    verifyPrompt: "Check whether PostgreSQL is configured for Holmes and summarize available database health signals.",
+    setupMarkdown: defaultSetup("postgres")
+  },
+  {
+    key: "kafka",
+    title: "Kafka",
+    category: "Queue",
+    description: "Broker health, consumer lag, topics, and event-streaming signals.",
+    status: "unknown",
+    toolsetKey: "kafka",
+    verifyPrompt: "Check whether Kafka is configured for Holmes and summarize broker or consumer-lag signals.",
+    setupMarkdown: defaultSetup("kafka")
   }
 ];
 
 export async function seedDataSources() {
   for (const source of seeds) {
-    await DataSource.updateOne({ key: source.key }, { $setOnInsert: source }, { upsert: true });
+    await DataSource.updateOne(
+      { key: source.key },
+      {
+        $setOnInsert: {
+          enabled: true,
+          capabilities: [],
+          secretFields: [],
+          ...source
+        }
+      },
+      { upsert: true }
+    );
   }
+  await Promise.all([
+    DataSource.updateMany({ enabled: { $exists: false } }, { $set: { enabled: true } }),
+    DataSource.updateMany({ capabilities: { $exists: false } }, { $set: { capabilities: [] } }),
+    DataSource.updateMany({ secretFields: { $exists: false } }, { $set: { secretFields: [] } })
+  ]);
 }

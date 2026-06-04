@@ -6,7 +6,12 @@ import { Incident } from "../models/Incident.js";
 import { env } from "../config/env.js";
 import { normalizeAlertmanagerPayload, type NormalizedAlert } from "../services/alertIngestService.js";
 import { enqueueIncidentRca } from "../services/incidentRcaService.js";
+import { recordIncidentEvent } from "../services/incidentEventService.js";
+import { dispatchIncidentNotifications } from "../services/notificationService.js";
+import { recordAuditLog } from "../services/auditService.js";
 import { asyncHandler, ApiError } from "../utils/errors.js";
+import { IncidentEvent } from "../models/IncidentEvent.js";
+import { requireRole, type AuthRequest } from "../middleware/auth.js";
 
 export const alertWebhookRoutes = Router();
 export const alertRoutes = Router();
@@ -116,6 +121,18 @@ async function upsertNormalizedAlert(input: NormalizedAlert) {
     incident.resolvedAt = undefined;
   }
   await incident.save();
+  await recordIncidentEvent({
+    incidentId: incident._id,
+    eventType: "alert_ingested",
+    title: `${input.status === "resolved" ? "Resolved" : "Received"} alert: ${input.title}`,
+    detail: input.description,
+    payload: {
+      fingerprint: input.fingerprint,
+      severity: input.severity,
+      status: input.status,
+      labels: input.labels
+    }
+  });
   return incident;
 }
 
@@ -130,6 +147,7 @@ alertWebhookRoutes.post(
     }
     const incidentIds = [...new Set(incidents.map((incident) => String(incident._id)))];
     for (const incidentId of incidentIds) {
+      void dispatchIncidentNotifications("alert_ingested", incidentId).catch(() => undefined);
       if (normalized.some((alert) => alert.status === "firing")) {
         void enqueueIncidentRca(incidentId).catch(() => undefined);
       }
@@ -170,6 +188,7 @@ alertRoutes.get(
 
 alertRoutes.patch(
   "/:id",
+  requireRole("admin", "operator"),
   asyncHandler(async (req, res) => {
     const id = objectId.parse(req.params.id);
     const input = alertPatchSchema.parse(req.body);
@@ -202,17 +221,23 @@ incidentRoutes.get(
     const id = objectId.parse(req.params.id);
     const incident = await Incident.findById(id).lean();
     if (!incident) throw new ApiError(404, "Incident not found");
-    const alerts = await Alert.find({ incidentId: id }).sort({ startsAt: -1, updatedAt: -1 }).lean();
-    res.json({ incident, alerts });
+    const [alerts, events] = await Promise.all([
+      Alert.find({ incidentId: id }).sort({ startsAt: -1, updatedAt: -1 }).lean(),
+      IncidentEvent.find({ incidentId: id }).sort({ createdAt: -1 }).limit(100).lean()
+    ]);
+    res.json({ incident, alerts, events });
   })
 );
 
 incidentRoutes.patch(
   "/:id",
-  asyncHandler(async (req, res) => {
+  requireRole("admin", "operator"),
+  asyncHandler<AuthRequest>(async (req, res) => {
     const id = objectId.parse(req.params.id);
     const input = incidentPatchSchema.parse(req.body);
     const update: Record<string, unknown> = {};
+    const before = await Incident.findById(id);
+    if (!before) throw new ApiError(404, "Incident not found");
     if (input.status) {
       update.status = input.status;
       update.resolvedAt = input.status === "resolved" ? new Date() : null;
@@ -220,6 +245,23 @@ incidentRoutes.patch(
     if (input.assignee !== undefined) update.assignee = input.assignee || null;
     const incident = await Incident.findByIdAndUpdate(id, { $set: update }, { new: true });
     if (!incident) throw new ApiError(404, "Incident not found");
+    if (input.status && input.status !== before.status) {
+      await recordIncidentEvent({
+        incidentId: incident._id,
+        eventType: "status_changed",
+        title: `Status changed to ${input.status}`,
+        detail: `Previous status: ${before.status}`,
+        payload: { from: before.status, to: input.status }
+      });
+      await recordAuditLog({
+        actor: req.user,
+        action: "incident.status_changed",
+        targetType: "incident",
+        targetId: String(incident._id),
+        metadata: { from: before.status, to: input.status }
+      });
+      void dispatchIncidentNotifications("incident_status_changed", String(incident._id)).catch(() => undefined);
+    }
     res.json({ incident });
   })
 );

@@ -5,6 +5,8 @@ import { getHolmesConnection } from "./settingsService.js";
 import { HolmesClient } from "./holmesClient.js";
 import { buildAdditionalSystemPrompt } from "./knowledgeService.js";
 import { withJobLock } from "./jobLockService.js";
+import { recordIncidentEvent } from "./incidentEventService.js";
+import { dispatchIncidentNotifications } from "./notificationService.js";
 
 const queued = new Set<string>();
 
@@ -72,6 +74,12 @@ export async function runIncidentRca(incidentId: string) {
     incident.rcaError = undefined;
     incident.rcaStartedAt = new Date();
     await incident.save();
+    await recordIncidentEvent({
+      incidentId: incident._id,
+      eventType: "rca_started",
+      title: "Holmes started automatic RCA",
+      payload: { alertCount: alerts.length }
+    });
 
     try {
       const connection = await getHolmesConnection();
@@ -97,12 +105,28 @@ export async function runIncidentRca(incidentId: string) {
       incident.rcaSummary = response.analysis ?? "";
       incident.rcaCompletedAt = new Date();
       await incident.save();
+      await recordIncidentEvent({
+        incidentId: incident._id,
+        eventType: "rca_completed",
+        title: "Holmes completed RCA",
+        detail: incident.rcaSummary?.slice(0, 500),
+        payload: { completedAt: incident.rcaCompletedAt }
+      });
+      void dispatchIncidentNotifications("rca_completed", String(incident._id)).catch(() => undefined);
       return incident;
     } catch (error) {
       incident.rcaStatus = "failed";
       incident.rcaError = error instanceof Error ? error.message : String(error);
       incident.rcaCompletedAt = new Date();
       await incident.save();
+      await recordIncidentEvent({
+        incidentId: incident._id,
+        eventType: "rca_failed",
+        title: "Holmes RCA failed",
+        detail: incident.rcaError,
+        payload: { completedAt: incident.rcaCompletedAt }
+      });
+      void dispatchIncidentNotifications("rca_failed", String(incident._id)).catch(() => undefined);
       return incident;
     }
   });
@@ -120,6 +144,12 @@ export async function enqueueIncidentRca(incidentId: string) {
     queued.delete(incidentId);
     return;
   }
+  await recordIncidentEvent({
+    incidentId: incident._id,
+    eventType: "rca_queued",
+    title: "Automatic RCA queued",
+    payload: { queuedAt: new Date() }
+  });
 
   setTimeout(() => {
     void runIncidentRca(incidentId).finally(() => queued.delete(incidentId));

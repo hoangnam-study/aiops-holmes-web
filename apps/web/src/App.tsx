@@ -6,8 +6,13 @@ import LoginPage from "./pages/LoginPage";
 import ChatPage from "./pages/ChatPage";
 import IncidentsPage from "./pages/IncidentsPage";
 import DataSourcesPage from "./pages/DataSourcesPage";
+import ClustersPage from "./pages/ClustersPage";
 import ScheduledPromptsPage from "./pages/ScheduledPromptsPage";
+import HealthChecksPage from "./pages/HealthChecksPage";
 import KnowledgePage from "./pages/KnowledgePage";
+import RunbooksPage from "./pages/RunbooksPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import AdminPage from "./pages/AdminPage";
 import SettingsPage from "./pages/SettingsPage";
 
 function ProtectedApp() {
@@ -33,9 +38,14 @@ export default function App() {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:threadId" element={<ChatPage />} />
           <Route path="/incidents" element={<IncidentsPage />} />
+          <Route path="/clusters" element={<ClustersPage />} />
           <Route path="/data-sources" element={<DataSourcesPage />} />
           <Route path="/scheduled-prompts" element={<ScheduledPromptsPage />} />
+          <Route path="/health-checks" element={<HealthChecksPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/knowledge" element={<KnowledgePage />} />
+          <Route path="/runbooks" element={<RunbooksPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

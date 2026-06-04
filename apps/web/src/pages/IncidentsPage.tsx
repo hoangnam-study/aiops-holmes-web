@@ -23,13 +23,14 @@ import PageHeader from "../components/PageHeader";
 import StatusPill from "../components/StatusPill";
 import MarkdownMessage from "../components/MarkdownMessage";
 import { apiFetch, patchJson, postJson } from "../api/client";
-import type { Alert, Incident } from "../types/api";
+import type { Alert, Incident, IncidentEvent } from "../types/api";
 
 dayjs.extend(relativeTime);
 
 interface IncidentDetail {
   incident: Incident;
   alerts: Alert[];
+  events: IncidentEvent[];
 }
 
 const statuses = ["open", "acknowledged", "resolved"] as const;
@@ -246,6 +247,53 @@ export default function IncidentsPage() {
                     {Object.entries(detail.incident.labels ?? {}).map(([key, value]) => (
                       <Chip key={key} size="small" label={`${key}=${value}`} />
                     ))}
+                  </Stack>
+                </Paper>
+
+                <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
+                  <Typography variant="h6" gutterBottom>
+                    Timeline
+                  </Typography>
+                  <Stack spacing={1.25}>
+                    {detail.events.map((event) => (
+                      <Box
+                        key={event._id}
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: "150px minmax(0, 1fr)",
+                          gap: 2,
+                          pb: 1.25,
+                          borderBottom: "1px solid",
+                          borderColor: "divider",
+                          "&:last-child": { borderBottom: 0, pb: 0 }
+                        }}
+                      >
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">
+                            {dayjs(event.createdAt).format("YYYY-MM-DD")}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                            {dayjs(event.createdAt).format("HH:mm:ss")}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography fontWeight={800}>{event.title}</Typography>
+                            <Chip size="small" label={event.eventType} />
+                          </Stack>
+                          {event.detail ? (
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                              {event.detail}
+                            </Typography>
+                          ) : null}
+                        </Box>
+                      </Box>
+                    ))}
+                    {!detail.events.length ? (
+                      <Typography variant="body2" color="text.secondary">
+                        Timeline events will appear as alerts arrive and Holmes investigates.
+                      </Typography>
+                    ) : null}
                   </Stack>
                 </Paper>
 

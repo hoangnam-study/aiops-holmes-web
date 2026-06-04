@@ -44,3 +44,11 @@ export async function requireAuth(req: AuthRequest, _res: Response, next: NextFu
     return next(new ApiError(401, "Authentication required"));
   }
 }
+
+export function requireRole(...roles: UserDoc["role"][]) {
+  return (req: AuthRequest, _res: Response, next: NextFunction) => {
+    if (!req.user) return next(new ApiError(401, "Authentication required"));
+    if (!roles.includes(req.user.role)) return next(new ApiError(403, "Insufficient permissions"));
+    return next();
+  };
+}
