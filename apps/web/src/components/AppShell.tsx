@@ -13,7 +13,9 @@ import {
   Typography
 } from "@mui/material";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import InsightsOutlinedIcon from "@mui/icons-material/InsightsOutlined";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
+import ChangeHistoryOutlinedIcon from "@mui/icons-material/ChangeHistoryOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import StorageIcon from "@mui/icons-material/Storage";
 import ScheduleIcon from "@mui/icons-material/Schedule";
@@ -34,8 +36,10 @@ import { useAuth } from "../hooks/useAuth";
 const drawerWidth = 244;
 
 const navItems = [
+  { label: "Overview", path: "/overview", icon: <InsightsOutlinedIcon fontSize="small" /> },
   { label: "Chat", path: "/chat", icon: <ChatBubbleOutlineIcon fontSize="small" /> },
   { label: "Incidents", path: "/incidents", icon: <ReportProblemOutlinedIcon fontSize="small" /> },
+  { label: "Changes", path: "/changes", icon: <ChangeHistoryOutlinedIcon fontSize="small" /> },
   { label: "Clusters", path: "/clusters", icon: <HubOutlinedIcon fontSize="small" />, roles: ["admin", "operator"] },
   { label: "Data Sources", path: "/data-sources", icon: <StorageIcon fontSize="small" />, roles: ["admin", "operator"] },
   { label: "Scheduled Prompts", path: "/scheduled-prompts", icon: <ScheduleIcon fontSize="small" />, roles: ["admin", "operator"] },

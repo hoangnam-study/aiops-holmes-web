@@ -112,7 +112,7 @@ router.post(
     const connection = await getHolmesConnection();
     const client = new HolmesClient(connection);
     try {
-      const response = await client.chat({
+      const response = await client.chatToCompletion({
         ask: dataSource.verifyPrompt,
         model: connection.defaultModel,
         request_source: "datasource_verification",

@@ -9,6 +9,7 @@ import { enqueueIncidentRca } from "../services/incidentRcaService.js";
 import { recordIncidentEvent } from "../services/incidentEventService.js";
 import { dispatchIncidentNotifications } from "../services/notificationService.js";
 import { recordAuditLog } from "../services/auditService.js";
+import { findChangesForIncident } from "../services/changeEventService.js";
 import { asyncHandler, ApiError } from "../utils/errors.js";
 import { IncidentEvent } from "../models/IncidentEvent.js";
 import { requireRole, type AuthRequest } from "../middleware/auth.js";
@@ -221,11 +222,12 @@ incidentRoutes.get(
     const id = objectId.parse(req.params.id);
     const incident = await Incident.findById(id).lean();
     if (!incident) throw new ApiError(404, "Incident not found");
-    const [alerts, events] = await Promise.all([
+    const [alerts, events, changes] = await Promise.all([
       Alert.find({ incidentId: id }).sort({ startsAt: -1, updatedAt: -1 }).lean(),
-      IncidentEvent.find({ incidentId: id }).sort({ createdAt: -1 }).limit(100).lean()
+      IncidentEvent.find({ incidentId: id }).sort({ createdAt: -1 }).limit(100).lean(),
+      findChangesForIncident(incident)
     ]);
-    res.json({ incident, alerts, events });
+    res.json({ incident, alerts, events, changes });
   })
 );
 

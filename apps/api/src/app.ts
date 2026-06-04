@@ -19,6 +19,9 @@ import adminRoutes from "./routes/admin.js";
 import { agentRoutes, clusterRoutes } from "./routes/clusters.js";
 import healthCheckRoutes from "./routes/healthChecks.js";
 import runbookRoutes from "./routes/runbooks.js";
+import { changeRoutes, changeWebhookRoutes } from "./routes/changes.js";
+import feedbackRoutes from "./routes/feedback.js";
+import analyticsRoutes from "./routes/analytics.js";
 
 export function createApp() {
   const app = express();
@@ -31,12 +34,16 @@ export function createApp() {
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
   app.use("/api/auth", authRoutes);
   app.use("/api/alerts/webhooks", alertWebhookRoutes);
+  app.use("/api/changes/webhooks", changeWebhookRoutes);
   app.use("/api/bots", botRoutes);
   app.use("/api/agents", agentRoutes);
   app.use("/api/holmes", requireAuth, holmesRoutes);
   app.use("/api/chats", requireAuth, chatRoutes);
   app.use("/api/alerts", requireAuth, alertRoutes);
   app.use("/api/incidents", requireAuth, incidentRoutes);
+  app.use("/api/changes", requireAuth, changeRoutes);
+  app.use("/api/feedback", requireAuth, feedbackRoutes);
+  app.use("/api/analytics", requireAuth, analyticsRoutes);
   app.use("/api/notifications", requireAuth, requireRole("admin", "operator"), notificationRoutes);
   app.use("/api/clusters", requireAuth, requireRole("admin", "operator"), clusterRoutes);
   app.use("/api/health-checks", requireAuth, requireRole("admin", "operator"), healthCheckRoutes);

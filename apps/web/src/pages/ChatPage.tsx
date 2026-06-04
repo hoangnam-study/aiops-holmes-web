@@ -37,7 +37,7 @@ import { apiFetch, deleteJson, postJson } from "../api/client";
 import { extractStreamedText, STREAM_TEXT_EVENTS, streamPost } from "../api/stream";
 import MarkdownMessage from "../components/MarkdownMessage";
 import ToolTimeline from "../components/ToolTimeline";
-import type { ChatEvent, ChatMessage, ChatThread, Settings, StreamEvent } from "../types/api";
+import type { ChatEvent, ChatMessage, ChatThread, GraphData, Settings, StreamEvent } from "../types/api";
 
 const promptCards = [
   {
@@ -489,7 +489,10 @@ export default function ChatPage() {
                     >
                       {assistant ? (
                         <Stack spacing={1.5}>
-                          <MarkdownMessage content={message.content || (streaming ? "Thinking..." : "")} />
+                          <MarkdownMessage
+                            content={message.content || (streaming ? "Thinking..." : "")}
+                            graphs={(message.metadata as { graphs?: Record<string, GraphData> } | undefined)?.graphs}
+                          />
                           {streaming && message.status === "streaming" ? (
                             <Stack direction="row" spacing={1} alignItems="center" color="text.secondary">
                               <CircularProgress size={14} />

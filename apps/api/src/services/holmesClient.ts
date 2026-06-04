@@ -1,5 +1,6 @@
 import { Agent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from "undici";
 import { drainSseBuffer, type ParsedSseEvent } from "../utils/sse.js";
+import { extractStreamedText } from "./holmesEvents.js";
 import { env } from "../config/env.js";
 
 export interface HolmesConnection {
@@ -33,6 +34,13 @@ export interface HolmesStatus {
   readyz: "ok" | "error";
   model?: unknown;
   errors: string[];
+}
+
+export interface HolmesCompletion {
+  analysis: string;
+  metadata?: Record<string, unknown>;
+  conversation_history?: Record<string, unknown>[];
+  tool_calls: Record<string, unknown>[];
 }
 
 function joinUrl(baseUrl: string, path: string) {
@@ -169,6 +177,56 @@ export class HolmesClient {
       throw new Error(`Holmes /api/chat returned ${response.status}: ${text}`);
     }
     return response.json();
+  }
+
+  /**
+   * Run a non-interactive Holmes investigation to completion over the STREAMING
+   * endpoint and return the final answer, shaped like the blocking `chat()`
+   * response (`analysis`/`metadata`/`conversation_history`/`tool_calls`).
+   *
+   * The deployed Holmes sits behind a gateway that 504s long blocking `/api/chat`
+   * calls and 500s when the model returns an empty completion. Streaming keeps the
+   * connection alive (idle-timeout resets per event) and tolerates empty output,
+   * so all background flows (auto-RCA, scheduled prompts, health checks, runbooks,
+   * bot, data-source verify) use this instead of `chat()`.
+   */
+  async chatToCompletion(payload: HolmesChatRequest, signal?: AbortSignal): Promise<HolmesCompletion> {
+    let partial = "";
+    let final = "";
+    let metadata: Record<string, unknown> | undefined;
+    let conversationHistory: Record<string, unknown>[] | undefined;
+    let toolCalls: Record<string, unknown>[] | undefined;
+    let errorMessage: string | undefined;
+
+    await this.streamChat(
+      payload,
+      () => {},
+      (event) => {
+        const data =
+          typeof event.data === "object" && event.data !== null
+            ? (event.data as Record<string, unknown>)
+            : { value: event.data };
+        partial += extractStreamedText(event.event, data);
+        if (event.event === "ai_answer_end") {
+          final = String(data.analysis ?? data.content ?? "");
+          metadata = data.metadata as Record<string, unknown> | undefined;
+          conversationHistory = data.conversation_history as Record<string, unknown>[] | undefined;
+          if (Array.isArray(data.tool_calls)) toolCalls = data.tool_calls as Record<string, unknown>[];
+        }
+        if (event.event === "error") {
+          errorMessage = String(data.msg ?? data.description ?? "Holmes returned an error");
+        }
+      },
+      signal
+    );
+
+    if (errorMessage) throw new Error(errorMessage);
+    return {
+      analysis: final || partial,
+      metadata,
+      conversation_history: conversationHistory,
+      tool_calls: toolCalls ?? []
+    };
   }
 
   async streamChat(

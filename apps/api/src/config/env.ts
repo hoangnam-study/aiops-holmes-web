@@ -27,6 +27,7 @@ const envSchema = z.object({
   HOLMES_API_VERIFY_SSL: booleanFromEnv("false"),
   HOLMES_STREAM_IDLE_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
   ALERT_INGEST_TOKEN: optionalString(),
+  CHANGE_INGEST_TOKEN: optionalString(),
   BOT_WEBHOOK_TOKEN: optionalString(),
   OIDC_ISSUER_URL: optionalUrl(),
   OIDC_CLIENT_ID: optionalString(),

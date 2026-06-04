@@ -49,7 +49,7 @@ export async function runRunbook(input: {
 
     try {
       const connection = await getHolmesConnection();
-      const response = await new HolmesClient(connection).chat({
+      const response = await new HolmesClient(connection).chatToCompletion({
         ask: buildRunbookExecutionPrompt({
           title: runbook.title,
           content: runbook.content,

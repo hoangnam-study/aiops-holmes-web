@@ -3,7 +3,7 @@ import { IncidentEvent } from "../models/IncidentEvent.js";
 
 export async function recordIncidentEvent(input: {
   incidentId: Types.ObjectId | string;
-  eventType: "alert_ingested" | "status_changed" | "rca_queued" | "rca_started" | "rca_completed" | "rca_failed" | "comment";
+  eventType: "alert_ingested" | "status_changed" | "rca_queued" | "rca_started" | "rca_completed" | "rca_failed" | "change_detected" | "comment";
   title: string;
   detail?: string;
   payload?: Record<string, unknown>;

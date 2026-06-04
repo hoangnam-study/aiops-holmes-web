@@ -84,7 +84,7 @@ export async function runScheduledPrompt(promptId: string, trigger: "manual" | "
       const connection = await getHolmesConnection();
       const client = new HolmesClient(connection);
       const additionalSystemPrompt = await buildAdditionalSystemPrompt();
-      const response = await client.chat({
+      const response = await client.chatToCompletion({
         ask: prompt.prompt,
         model: prompt.model || connection.defaultModel,
         request_source: "scheduled_prompt",

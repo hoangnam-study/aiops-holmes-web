@@ -4,7 +4,9 @@ import { AuthProvider, useAuth } from "./hooks/useAuth";
 import AppShell from "./components/AppShell";
 import LoginPage from "./pages/LoginPage";
 import ChatPage from "./pages/ChatPage";
+import OverviewPage from "./pages/OverviewPage";
 import IncidentsPage from "./pages/IncidentsPage";
+import ChangesPage from "./pages/ChangesPage";
 import DataSourcesPage from "./pages/DataSourcesPage";
 import ClustersPage from "./pages/ClustersPage";
 import ScheduledPromptsPage from "./pages/ScheduledPromptsPage";
@@ -34,10 +36,12 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<ProtectedApp />}>
-          <Route path="/" element={<Navigate to="/chat" replace />} />
+          <Route path="/" element={<Navigate to="/overview" replace />} />
+          <Route path="/overview" element={<OverviewPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:threadId" element={<ChatPage />} />
           <Route path="/incidents" element={<IncidentsPage />} />
+          <Route path="/changes" element={<ChangesPage />} />
           <Route path="/clusters" element={<ClustersPage />} />
           <Route path="/data-sources" element={<DataSourcesPage />} />
           <Route path="/scheduled-prompts" element={<ScheduledPromptsPage />} />

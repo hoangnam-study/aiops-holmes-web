@@ -9,6 +9,7 @@ export interface IncidentEventDoc {
     | "rca_started"
     | "rca_completed"
     | "rca_failed"
+    | "change_detected"
     | "comment";
   title: string;
   detail?: string;
@@ -23,7 +24,7 @@ const incidentEventSchema = new Schema<IncidentEventDoc>(
     incidentId: { type: Schema.Types.ObjectId, ref: "Incident", required: true, index: true },
     eventType: {
       type: String,
-      enum: ["alert_ingested", "status_changed", "rca_queued", "rca_started", "rca_completed", "rca_failed", "comment"],
+      enum: ["alert_ingested", "status_changed", "rca_queued", "rca_started", "rca_completed", "rca_failed", "change_detected", "comment"],
       required: true,
       index: true
     },

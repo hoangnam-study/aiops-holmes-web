@@ -104,12 +104,100 @@ export interface IncidentEvent {
     | "rca_started"
     | "rca_completed"
     | "rca_failed"
+    | "change_detected"
     | "comment";
   title: string;
   detail?: string;
   payload: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+}
+
+export type ChangeKind =
+  | "deploy"
+  | "config_change"
+  | "scale"
+  | "rollback"
+  | "image_change"
+  | "feature_flag"
+  | "other";
+
+export interface ChangeEvent {
+  _id: string;
+  kind: ChangeKind;
+  title: string;
+  description?: string;
+  cluster?: string;
+  namespace?: string;
+  workload?: string;
+  service?: string;
+  labels: Record<string, string>;
+  author?: string;
+  source: string;
+  version?: string;
+  previousVersion?: string;
+  link?: string;
+  occurredAt: string;
+  incidentIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FeedbackSummary {
+  up: number;
+  down: number;
+}
+
+export interface FeedbackEntry {
+  _id: string;
+  targetType: "incident_rca" | "chat_message";
+  targetId: string;
+  rating: "up" | "down";
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GraphPoint {
+  t: number;
+  v: number;
+}
+
+export interface GraphSeries {
+  name: string;
+  points: GraphPoint[];
+}
+
+export interface GraphData {
+  toolCallId: string;
+  toolName: string;
+  description?: string;
+  query?: string;
+  series: GraphSeries[];
+}
+
+export interface AnalyticsOverview {
+  rangeDays: number;
+  since: string;
+  summary: {
+    incidentsTotal: number;
+    incidentsOpen: number;
+    mttrSeconds: number | null;
+    resolvedCount: number;
+    rcaCompleted: number;
+    rcaFailed: number;
+    rcaSuccessRate: number | null;
+    feedbackUp: number;
+    feedbackDown: number;
+    feedbackScore: number | null;
+    alertsTotal: number;
+    changesTotal: number;
+  };
+  timeseries: Array<{ date: string; incidents: number; alerts: number }>;
+  severity: Array<{ key: string; count: number }>;
+  rcaStatus: Array<{ key: string; count: number }>;
+  topNamespaces: Array<{ key: string; count: number }>;
+  topAlerts: Array<{ key: string; count: number }>;
 }
 
 export interface DataSource {

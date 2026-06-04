@@ -21,7 +21,7 @@ export async function runHealthCheck(healthCheckId: string) {
 
     try {
       const connection = await getHolmesConnection();
-      const response = await new HolmesClient(connection).chat({
+      const response = await new HolmesClient(connection).chatToCompletion({
         ask: [
           "Run this Holmes Health Check and return pass/fail evidence, risk, and remediation.",
           healthCheck.scope ? `Scope: ${healthCheck.scope}` : "",

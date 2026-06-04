@@ -79,7 +79,7 @@ export async function runBotPrompt(provider: BotProvider, prompt: BotPrompt) {
   });
 
   try {
-    const response = await client.chat({
+    const response = await client.chatToCompletion({
       ask: prompt.text,
       model: connection.defaultModel,
       request_source: `${provider}_bot`,

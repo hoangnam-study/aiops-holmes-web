@@ -7,6 +7,7 @@ import { buildAdditionalSystemPrompt } from "./knowledgeService.js";
 import { withJobLock } from "./jobLockService.js";
 import { recordIncidentEvent } from "./incidentEventService.js";
 import { dispatchIncidentNotifications } from "./notificationService.js";
+import { buildChangeContext, findChangesForIncident } from "./changeEventService.js";
 
 const queued = new Set<string>();
 
@@ -24,7 +25,7 @@ export function buildIncidentRcaPrompt(incident: IncidentLike, alerts: Array<{
   labels?: Record<string, string>;
   startsAt?: Date;
   endsAt?: Date;
-}>) {
+}>, changeContext?: string) {
   const incidentLabels = recordFromLabels(incident.labels);
   const alertLines = alerts.slice(0, 20).map((alert, index) => {
     const labels = alert.labels ?? {};
@@ -59,7 +60,8 @@ export function buildIncidentRcaPrompt(incident: IncidentLike, alerts: Array<{
     `Last seen: ${incident.lastSeenAt.toISOString()}`,
     "",
     "Alerts:",
-    alertLines.length ? alertLines.join("\n") : "No alerts are currently attached."
+    alertLines.length ? alertLines.join("\n") : "No alerts are currently attached.",
+    ...(changeContext ? ["", changeContext] : [])
   ].join("\n");
 }
 
@@ -84,6 +86,8 @@ export async function runIncidentRca(incidentId: string) {
     try {
       const connection = await getHolmesConnection();
       const client = new HolmesClient(connection);
+      const changes = await findChangesForIncident(incident);
+      const changeContext = buildChangeContext(changes);
       const prompt = buildIncidentRcaPrompt(incident, alerts.map((alert) => ({
         title: alert.title,
         status: alert.status,
@@ -92,17 +96,34 @@ export async function runIncidentRca(incidentId: string) {
         labels: alert.labels,
         startsAt: alert.startsAt,
         endsAt: alert.endsAt
-      })));
-      const response = await client.chat({
+      })), changeContext);
+      const additionalSystemPrompt = await buildAdditionalSystemPrompt();
+      // The model occasionally ends an investigation with an empty answer
+      // (a known capability ceiling of the configured tier). Empty completions
+      // are nondeterministic, so retry once before giving up.
+      let response = await client.chatToCompletion({
         ask: prompt,
         model: connection.defaultModel,
         request_source: "alert_auto_rca",
         source_ref: String(incident._id),
-        additional_system_prompt: await buildAdditionalSystemPrompt()
+        additional_system_prompt: additionalSystemPrompt
       });
+      if (!response.analysis.trim()) {
+        response = await client.chatToCompletion({
+          ask: prompt,
+          model: connection.defaultModel,
+          request_source: "alert_auto_rca",
+          source_ref: String(incident._id),
+          additional_system_prompt: additionalSystemPrompt
+        });
+      }
+
+      if (!response.analysis.trim()) {
+        throw new Error("Holmes returned an empty analysis after a retry (model produced no answer).");
+      }
 
       incident.rcaStatus = "completed";
-      incident.rcaSummary = response.analysis ?? "";
+      incident.rcaSummary = response.analysis;
       incident.rcaCompletedAt = new Date();
       await incident.save();
       await recordIncidentEvent({

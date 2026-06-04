@@ -144,6 +144,110 @@ Status legend: `[ ] todo`, `[~] in progress`, `[x] done`.
   - Current Knowledge entries are generic prompt injections, not structured runbooks.
   - Implemented Runbook/RunbookExecution models, runbook CRUD API, Holmes-guided execution service, Runbooks UI, execution history, and audit logging.
 
+## 11. Change and Deploy Tracking
+
+- [x] Status: done
+- Priority: P0
+- Goal: Correlate alerts/incidents with recent deploys, config changes, scaling, rollbacks, and image changes ("what changed before the alert") — Robusta's signature RCA accelerator.
+- Suggested first slice:
+  - Add a `ChangeEvent` model (kind, cluster, namespace, workload, version, author, source, occurredAt).
+  - Add webhook ingestion for ArgoCD/Flux/GitHub/Kubernetes-style change payloads (mirror the Alertmanager webhook).
+  - Correlate changes to incidents by labels (cluster/namespace/workload) within a time window.
+  - Inject correlated recent changes into the automatic RCA prompt and the incident timeline.
+  - Add a Changes page and a "Recent changes" panel on incident detail.
+- Notes:
+  - Without change context the RCA misses the most common root cause ("a deploy 5 min ago").
+  - Implemented `ChangeEvent` model, token-guarded change webhook, manual change API, label+time incident correlation, RCA change-context injection, `change_detected` timeline events, Changes UI, and an incident "Recent changes" panel.
+  - Verified live against the connected cluster: alert->incident + correlated change auto-links, timeline `change_detected` event, changes list filter, and the change feeds the RCA prompt.
+  - Robustness fix uncovered during live test: the deployed Holmes (behind a gateway) **504s on the blocking `/api/chat`** for long investigations and **500s on empty completions**. Added `HolmesClient.chatToCompletion()` (streaming-to-text, idle-timeout kept alive, tolerant of empty) and switched all background flows (auto-RCA, scheduled prompts, health checks, runbooks, bot, data-source verify) off blocking `chat()`. Auto-RCA now survives multi-minute investigations + retries once on empty. Remaining empty-after-retry is the known `cloud-escalate`/gemini-2.5-flash capability ceiling (accepted), now surfaced as a clear error instead of a cryptic gateway/validation failure.
+
+## 12. Investigation Feedback Loop
+
+- [x] Status: done
+- Priority: P1
+- Goal: Capture thumbs up/down + notes on RCA results and chat answers to measure and improve investigation quality.
+- Suggested first slice:
+  - Add a `Feedback` model (targetType, targetId, rating, note, author).
+  - Add `POST /api/feedback` and `GET /api/feedback` scoped by target.
+  - Add up/down controls to the incident RCA panel (and later chat messages).
+  - Surface aggregate score in analytics.
+- Notes:
+  - Directly addresses the documented `cloud-escalate` model-quality concern by giving a real signal.
+  - Implemented generic `Feedback` model, create/list/summary API, and thumbs up/down + note controls on the incident RCA panel.
+
+## 13. Analytics and Reliability Dashboards
+
+- [x] Status: done
+- Priority: P1
+- Goal: MTTR, alert/incident volume trends, RCA success rate, feedback score, top noisy alerts, and LLM token/cost usage.
+- Notes:
+  - All raw data already exists (Incident, Alert, ChangeEvent, Feedback) — this is an aggregation + charts layer.
+  - Implemented `analyticsService` (Mongo aggregation: MTTR, RCA success rate, feedback score, severity/rca/namespace/alert breakdowns, zero-filled daily timeseries), `GET /api/analytics/overview?days=`, and an Overview landing page with lightweight SVG/MUI visuals (no chart dependency added).
+  - Verified live: metrics reflect real data (resolving an incident populated MTTR=1018s, success-rate/feedback/severity/namespace/timeseries all correct).
+  - LLM token/cost usage deferred — Holmes does not yet return per-investigation token counts through the proxied response; revisit when available.
+
+## 14. Automation / Playbook Engine (trigger -> action)
+
+- [ ] Status: todo
+- Priority: P0
+- Goal: Declarative `on_X -> run_Y` engine (e.g. `on_prometheus_alert(critical) -> investigate + notify + restart`) with conditions, enrichers, and chained actions. The defining feature of commercial Robusta.
+- Notes: Scheduled prompts (cron) and notification routing (event->sink) are point solutions, not a general engine. Unlocks #15 and bidirectional on-call.
+
+## 15. Remediation / Write-path Actions
+
+- [ ] Status: todo
+- Priority: P1
+- Goal: One-click / automated remediation (restart pod, rollback deploy, scale, cordon/drain, delete pod) gated by RBAC and the existing tool-approval round-trip.
+- Notes: UI is read-only today (README V1 Boundaries). The approval plumbing already exists.
+
+## 16. Efficiency Tooling (KRR right-sizing + misconfig scanning)
+
+- [ ] Status: todo
+- Priority: P2
+- Goal: Bundle KRR-style CPU/memory right-sizing recommendations and Popeye-style cluster misconfiguration scans.
+
+## 17. Embedded Evidence (metrics graphs / screenshots in investigations)
+
+- [x] Status: done (Prometheus graphs + code blocks)
+- Priority: P2
+- Goal: Render Prometheus/Grafana charts and visual evidence inline in the RCA, not just tool-call text.
+- Notes:
+  - Holmes embeds graphs in the answer text as a token `<<{"type":"promql","tool_name":"execute_prometheus_range_query","tool_call_id":"<id>"}>>`; the time-series lives in the matching `tool_calling_result` SSE event (`result.data` is a JSON string holding a Prometheus query_range matrix). Confirmed live against the deployed Holmes.
+  - Implemented `holmesGraphs.parsePrometheusGraph()` (parses + downsamples the matrix), graph capture in `streamHolmesTurn` persisted to `assistantMessage.metadata.graphs`, a `PromGraph` SVG multi-series chart, and `MarkdownMessage` token-splitting to render charts in place (no chart dependency added).
+  - Code-block parity: added `rehype-highlight` syntax highlighting + a language-label header + copy button (was a plain copy-only block).
+  - Verified end-to-end through the chat pipeline: a memory-usage prompt produced a stored graph (1 series, 61 points, real PromQL query) rendered from `metadata.graphs`.
+  - Remaining (future): Grafana panel screenshots and graphs in the auto-RCA/incident view (chat-only today).
+
+## 18. Programmatic API + API Tokens
+
+- [ ] Status: todo
+- Priority: P2
+- Goal: Personal-access / service-account tokens and a documented public API for ingestion and querying.
+
+## 19. PII / Secret Redaction and Data Governance
+
+- [ ] Status: todo
+- Priority: P2
+- Goal: Redact secrets/PII before data reaches the LLM; an enterprise compliance blocker.
+
+## 20. Bidirectional On-call (ack / resolve / silence)
+
+- [ ] Status: todo
+- Priority: P2
+- Goal: Sync ack/resolve/silence with PagerDuty/Opsgenie and support alert silencing/snooze (today sinks are send-only).
+
+## 21. Alert Noise Reduction / Correlation Grouping
+
+- [ ] Status: todo
+- Priority: P2
+- Goal: Correlation-based grouping of related alerts into a single incident beyond label dedupe.
+
+## 22. Post-mortem Generation and Sharing
+
+- [ ] Status: todo
+- Priority: P2
+- Goal: Auto-generate post-mortem docs, shareable public links, and PDF export.
+
 ## Working Order
 
 Recommended sequence:

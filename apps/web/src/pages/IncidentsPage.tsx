@@ -7,6 +7,7 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  IconButton,
   List,
   ListItemButton,
   ListItemText,
@@ -14,16 +15,19 @@ import {
   Paper,
   Stack,
   TextField,
+  Tooltip,
   Typography
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import ThumbUpAltOutlinedIcon from "@mui/icons-material/ThumbUpAltOutlined";
+import ThumbDownAltOutlinedIcon from "@mui/icons-material/ThumbDownAltOutlined";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import PageHeader from "../components/PageHeader";
 import StatusPill from "../components/StatusPill";
 import MarkdownMessage from "../components/MarkdownMessage";
 import { apiFetch, patchJson, postJson } from "../api/client";
-import type { Alert, Incident, IncidentEvent } from "../types/api";
+import type { Alert, ChangeEvent, FeedbackEntry, FeedbackSummary, Incident, IncidentEvent } from "../types/api";
 
 dayjs.extend(relativeTime);
 
@@ -31,6 +35,7 @@ interface IncidentDetail {
   incident: Incident;
   alerts: Alert[];
   events: IncidentEvent[];
+  changes: ChangeEvent[];
 }
 
 const statuses = ["open", "acknowledged", "resolved"] as const;
@@ -83,8 +88,32 @@ export default function IncidentsPage() {
     }
   });
 
+  const hasRca = Boolean(detailQuery.data?.incident.rcaSummary);
+  const feedbackQuery = useQuery({
+    queryKey: ["rca-feedback", selectedIncidentId],
+    queryFn: () =>
+      apiFetch<{ mine: FeedbackEntry | null; summary: FeedbackSummary }>(
+        `/api/feedback?targetType=incident_rca&targetId=${selectedIncidentId}`
+      ),
+    enabled: Boolean(selectedIncidentId) && hasRca
+  });
+
+  const submitFeedback = useMutation({
+    mutationFn: ({ id, rating }: { id: string; rating: "up" | "down" }) =>
+      postJson<{ summary: FeedbackSummary }>("/api/feedback", {
+        targetType: "incident_rca",
+        targetId: id,
+        rating
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rca-feedback", selectedIncidentId] });
+    }
+  });
+
   const incidents = incidentsQuery.data?.incidents ?? [];
   const detail = detailQuery.data;
+  const myRating = feedbackQuery.data?.mine?.rating;
+  const feedbackSummary = feedbackQuery.data?.summary;
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -226,7 +255,43 @@ export default function IncidentsPage() {
                 <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                     <Typography variant="h6">Automatic RCA</Typography>
-                    <StatusPill value={detail.incident.rcaStatus} />
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      {detail.incident.rcaSummary ? (
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                          <Tooltip title="Helpful">
+                            <span>
+                              <IconButton
+                                size="small"
+                                color={myRating === "up" ? "success" : "default"}
+                                disabled={submitFeedback.isPending}
+                                onClick={() => submitFeedback.mutate({ id: detail.incident._id, rating: "up" })}
+                              >
+                                <ThumbUpAltOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          {feedbackSummary?.up ? (
+                            <Typography variant="caption" color="text.secondary">{feedbackSummary.up}</Typography>
+                          ) : null}
+                          <Tooltip title="Not helpful">
+                            <span>
+                              <IconButton
+                                size="small"
+                                color={myRating === "down" ? "error" : "default"}
+                                disabled={submitFeedback.isPending}
+                                onClick={() => submitFeedback.mutate({ id: detail.incident._id, rating: "down" })}
+                              >
+                                <ThumbDownAltOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          {feedbackSummary?.down ? (
+                            <Typography variant="caption" color="text.secondary">{feedbackSummary.down}</Typography>
+                          ) : null}
+                        </Stack>
+                      ) : null}
+                      <StatusPill value={detail.incident.rcaStatus} />
+                    </Stack>
                   </Stack>
                   {detail.incident.rcaSummary ? (
                     <MarkdownMessage content={detail.incident.rcaSummary} />
@@ -238,6 +303,39 @@ export default function IncidentsPage() {
                     </Typography>
                   )}
                 </Paper>
+
+                {detail.changes?.length ? (
+                  <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="h6" gutterBottom>
+                      Recent changes
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                      Deploys and config changes near this incident — fed into the RCA as likely causes.
+                    </Typography>
+                    <Stack spacing={1.25}>
+                      {detail.changes.map((change) => (
+                        <Stack key={change._id} direction="row" spacing={1.5} alignItems="flex-start">
+                          <Chip size="small" label={change.kind.replace(/_/g, " ")} color="warning" sx={{ fontWeight: 700, mt: 0.25 }} />
+                          <Box sx={{ minWidth: 0 }}>
+                            <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+                              <Typography fontWeight={700}>{change.title}</Typography>
+                              {change.version ? (
+                                <Chip
+                                  size="small"
+                                  variant="outlined"
+                                  label={change.previousVersion ? `${change.previousVersion} → ${change.version}` : change.version}
+                                />
+                              ) : null}
+                            </Stack>
+                            <Typography variant="caption" color="text.secondary">
+                              {[change.workload, change.author && `by ${change.author}`, change.source].filter(Boolean).join(" · ")} · {dayjs(change.occurredAt).fromNow()}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </Paper>
+                ) : null}
 
                 <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
                   <Typography variant="h6" gutterBottom>

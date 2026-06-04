@@ -10,6 +10,7 @@ import { getHolmesConnection } from "../services/settingsService.js";
 import { HolmesClient } from "../services/holmesClient.js";
 import { buildAdditionalSystemPrompt } from "../services/knowledgeService.js";
 import { extractStreamedText, mergeConversationHistory } from "../services/holmesEvents.js";
+import { parsePrometheusGraph, type GraphData } from "../services/holmesGraphs.js";
 import { formatSse } from "../utils/sse.js";
 
 const router = Router();
@@ -102,6 +103,7 @@ async function streamHolmesTurn(opts: StreamTurnOptions) {
   let finalMetadata: Record<string, unknown> | undefined;
   let finalConversationHistory: Record<string, unknown>[] | undefined;
   let partialAnalysis = "";
+  const graphs: Record<string, GraphData> = {};
   let terminalEvent: "ai_answer_end" | "approval_required" | "error" | undefined;
   const abortController = new AbortController();
   req.on("close", () => {
@@ -137,6 +139,10 @@ async function streamHolmesTurn(opts: StreamTurnOptions) {
         });
 
         partialAnalysis += extractStreamedText(event.event, payload);
+        if (event.event === "tool_calling_result") {
+          const graph = parsePrometheusGraph(payload);
+          if (graph) graphs[graph.toolCallId] = graph;
+        }
         if (event.event === "ai_answer_end") {
           terminalEvent = "ai_answer_end";
           finalAnalysis = String(payload.analysis ?? payload.content ?? "");
@@ -168,7 +174,10 @@ async function streamHolmesTurn(opts: StreamTurnOptions) {
       if (answer.trim()) {
         assistantMessage.status = "completed";
         assistantMessage.content = answer;
-        assistantMessage.metadata = finalMetadata ?? {};
+        assistantMessage.metadata = {
+          ...(finalMetadata ?? {}),
+          ...(Object.keys(graphs).length ? { graphs } : {})
+        };
       } else {
         const emptyResponsePayload = {
           msg: EMPTY_HOLMES_RESPONSE,

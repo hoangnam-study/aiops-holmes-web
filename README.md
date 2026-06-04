@@ -65,6 +65,44 @@ POST /api/alerts/webhooks/alertmanager
 
 Set `ALERT_INGEST_TOKEN` to require either an `X-Alert-Ingest-Token` header, a `Bearer` token, or a `?token=` query parameter.
 
+## Inline Graphs and Code Blocks
+
+Chat answers render the same rich content as the commercial UI:
+
+- **Prometheus graphs** — Holmes embeds graph tokens (`<<{"type":"promql",...}>>`) in its answer; the backend parses the matching `tool_calling_result` time-series, persists it on the message, and the chat renders an inline multi-series line chart (no external chart library).
+- **Code blocks** — syntax-highlighted (`rehype-highlight`) with a language-label header and copy button.
+
+## Overview Analytics
+
+The Overview page (default landing page) shows reliability analytics over a selectable window:
+
+```text
+GET /api/analytics/overview?days=30
+```
+
+Metrics: incident volume, open count, MTTR, RCA success rate, investigation feedback score, alert/change totals, a daily incidents-vs-alerts timeseries, and breakdowns by severity, RCA status, top namespaces, and noisiest alerts. All values are aggregated from existing data (incidents, alerts, changes, feedback); no external analytics store is required.
+
+## Change and Deploy Tracking
+
+Deploy, config, scale, rollback, and image-change events can be posted to:
+
+```text
+POST /api/changes/webhooks/event
+```
+
+The payload is flexible — single object, `{ "changes": [...] }`, or a raw array — and field names from ArgoCD, Flux, GitHub deploys, or Kubernetes events are normalized (e.g. `revision`/`image`/`tag` → version, `app`/`deployment` → workload). Set `CHANGE_INGEST_TOKEN` to require an `X-Change-Ingest-Token` header, a `Bearer` token, or a `?token=` query parameter.
+
+Recorded changes are correlated to active incidents by labels (cluster/namespace/workload) within a 6-hour lookback before the incident fired, surfaced on the incident timeline and a "Recent changes" panel, and injected into the automatic RCA prompt as likely root causes. The Changes page lists all changes and supports recording one manually.
+
+## Investigation Feedback
+
+RCA results accept thumbs up/down feedback (one rating per user, re-submittable) via:
+
+```text
+POST /api/feedback        { targetType, targetId, rating, note? }
+GET  /api/feedback?targetType=incident_rca&targetId=<id>
+```
+
 ## Slack and Teams Bot Webhooks
 
 Bot prompts can be sent to:
