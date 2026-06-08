@@ -36,8 +36,8 @@ spec:
     spec:
       containers:
         - name: web
-          image: ghcr.io/your-org/holmes-ui-web:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/hoangnam-study/aiops-holmes-web:main
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080

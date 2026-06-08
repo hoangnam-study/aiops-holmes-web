@@ -6,8 +6,8 @@ This bundle deploys MongoDB, the Holmes UI API, and the Holmes UI web frontend.
 
 Edit these values first:
 
-- `api.yaml`: replace `ghcr.io/your-org/holmes-ui-api:latest`.
-- `web.yaml`: replace `ghcr.io/your-org/holmes-ui-web:latest`.
+- `api.yaml`: confirm the API image, default `ghcr.io/hoangnam-study/aiops-holmes-web-api:main`.
+- `web.yaml`: confirm the web image, default `ghcr.io/hoangnam-study/aiops-holmes-web:main`.
 - `api-configmap.yaml`: set `CORS_ORIGIN` to the public HTTPS URL of the web app.
 - `api-configmap.yaml`: set `HOLMES_API_URL` and OIDC values if needed.
 - `api-secret.yaml`: set `APP_SECRET`, `ADMIN_PASSWORD`, tokens, and `HOLMES_API_KEY` if needed.
@@ -20,14 +20,21 @@ If your images are in a private registry, add `imagePullSecrets` to the `api` an
 
 ## Build And Push Images
 
+Pushing to `main` runs `.github/workflows/build-images.yml` and publishes:
+
+- `ghcr.io/hoangnam-study/aiops-holmes-web-api:main`
+- `ghcr.io/hoangnam-study/aiops-holmes-web:main`
+
+To build manually instead:
+
 ```bash
-docker build -t <registry>/holmes-ui-api:<tag> -f apps/api/Dockerfile .
-docker build -t <registry>/holmes-ui-web:<tag> -f apps/web/Dockerfile .
-docker push <registry>/holmes-ui-api:<tag>
-docker push <registry>/holmes-ui-web:<tag>
+docker build -t ghcr.io/hoangnam-study/aiops-holmes-web-api:main -f apps/api/Dockerfile .
+docker build -t ghcr.io/hoangnam-study/aiops-holmes-web:main -f apps/web/Dockerfile .
+docker push ghcr.io/hoangnam-study/aiops-holmes-web-api:main
+docker push ghcr.io/hoangnam-study/aiops-holmes-web:main
 ```
 
-Then update the image names in `api.yaml` and `web.yaml`.
+Then update the image names in `api.yaml` and `web.yaml` if you used different tags.
 
 ## Deploy
 

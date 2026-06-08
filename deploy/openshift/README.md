@@ -4,8 +4,8 @@ This overlay deploys the Kubernetes base plus an OpenShift Route.
 
 ## Edit First
 
-- `deploy/kubernetes/api.yaml`: set the API image.
-- `deploy/kubernetes/web.yaml`: set the web image.
+- `deploy/kubernetes/api.yaml`: confirm the API image, default `ghcr.io/hoangnam-study/aiops-holmes-web-api:main`.
+- `deploy/kubernetes/web.yaml`: confirm the web image, default `ghcr.io/hoangnam-study/aiops-holmes-web:main`.
 - `deploy/kubernetes/api-configmap.yaml`: set `CORS_ORIGIN` to `https://<route-host>`.
 - `deploy/kubernetes/api-configmap.yaml`: set `HOLMES_API_URL`.
 - `deploy/kubernetes/api-secret.yaml`: set `APP_SECRET`, `ADMIN_PASSWORD`, and optional tokens.
@@ -14,19 +14,34 @@ This overlay deploys the Kubernetes base plus an OpenShift Route.
 
 ## Build And Push
 
-Push both images to a registry OpenShift can pull:
+Pushing to `main` runs `.github/workflows/build-images.yml` and publishes:
+
+- `ghcr.io/hoangnam-study/aiops-holmes-web-api:main`
+- `ghcr.io/hoangnam-study/aiops-holmes-web:main`
+
+To build manually instead:
 
 ```bash
-docker build -t <registry>/holmes-ui-api:<tag> -f apps/api/Dockerfile .
-docker build -t <registry>/holmes-ui-web:<tag> -f apps/web/Dockerfile .
-docker push <registry>/holmes-ui-api:<tag>
-docker push <registry>/holmes-ui-web:<tag>
+docker build -t ghcr.io/hoangnam-study/aiops-holmes-web-api:main -f apps/api/Dockerfile .
+docker build -t ghcr.io/hoangnam-study/aiops-holmes-web:main -f apps/web/Dockerfile .
+docker push ghcr.io/hoangnam-study/aiops-holmes-web-api:main
+docker push ghcr.io/hoangnam-study/aiops-holmes-web:main
 ```
 
 ## Apply
 
 ```bash
 oc apply -k deploy/openshift
+```
+
+If the GHCR packages are private, create and attach an image pull secret first:
+
+```bash
+oc -n holmes-ui create secret docker-registry ghcr-pull-secret \
+  --docker-server=ghcr.io \
+  --docker-username=<github-username> \
+  --docker-password=<github-token-with-read-packages>
+oc -n holmes-ui secrets link default ghcr-pull-secret --for=pull
 ```
 
 ## Verify
@@ -45,5 +60,6 @@ Open the Route URL over HTTPS and log in with `ADMIN_EMAIL` and `ADMIN_PASSWORD`
 
 - The web container listens on unprivileged port `8080`, while the service still exposes port `80`.
 - The Route uses edge TLS and redirects HTTP to HTTPS, which is required for production login cookies.
+- If the GHCR packages are private, create an OpenShift image pull secret and attach it to the `default` service account in the `holmes-ui` namespace.
 - The included MongoDB StatefulSet is useful for a simple self-contained install. For production, prefer your platform MongoDB/operator and point `MONGODB_URI` at that service.
 - MongoDB credentials are initialized only when the Mongo data PVC is empty.
