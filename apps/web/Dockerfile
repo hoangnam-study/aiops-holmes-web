@@ -13,5 +13,7 @@ FROM nginx:1.27-alpine
 
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
+RUN chgrp -R 0 /etc/nginx /usr/share/nginx/html /var/cache/nginx /var/log/nginx /var/run && \
+  chmod -R g=u /etc/nginx /usr/share/nginx/html /var/cache/nginx /var/log/nginx /var/run
 
-EXPOSE 80
+EXPOSE 8080

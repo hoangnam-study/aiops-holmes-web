@@ -1,0 +1,17 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: holmes-ui
+  namespace: holmes-ui
+  annotations:
+    haproxy.router.openshift.io/timeout: 600s
+spec:
+  host: holmes-ui.apps.example.com
+  to:
+    kind: Service
+    name: web
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

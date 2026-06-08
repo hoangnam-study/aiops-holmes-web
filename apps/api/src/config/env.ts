@@ -17,7 +17,7 @@ const optionalUrl = () => z.preprocess(
 
 const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
-  PORT: z.coerce.number().default(8080),
+  PORT: z.coerce.number().default(8765),
   MONGODB_URI: z.string().default("mongodb://localhost:27017/holmes-ui"),
   APP_SECRET: z.string().default("dev-change-me-dev-change-me-dev-change-me"),
   ADMIN_EMAIL: z.string().email().default("admin@example.com"),

@@ -16,7 +16,7 @@ npm install
 npm run dev
 ```
 
-The Vite app runs at `http://localhost:5173` and proxies `/api` to the Express API at `http://localhost:8080`.
+The Vite app runs at `http://localhost:5173` and proxies `/api` to the Express API at `http://localhost:8765`.
 
 Default admin:
 
@@ -46,6 +46,10 @@ Open `http://localhost:3000`. Compose defaults to:
 HOLMES_API_URL=https://holmes.observestack.fis-cloud.xplat.online
 HOLMES_API_VERIFY_SSL=false
 ```
+
+## Kubernetes / OpenShift
+
+Cluster manifests are in `deploy/kubernetes`, with an optional OpenShift Route in `deploy/openshift`.
 
 ## Verification
 

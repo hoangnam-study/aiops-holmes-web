@@ -1,6 +1,6 @@
 services:
   mongo:
-    image: mongo:7
+    image: mongo:8
     restart: unless-stopped
     volumes:
       - mongo-data:/data/db
@@ -13,10 +13,10 @@ services:
     depends_on:
       - mongo
     ports:
-      - "8080:8080"
+      - "8765:8765"
     environment:
       NODE_ENV: production
-      PORT: 8080
+      PORT: 8765
       MONGODB_URI: mongodb://mongo:27017/holmes-ui
       APP_SECRET: ${APP_SECRET:-replace-with-a-long-random-string}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
@@ -46,7 +46,7 @@ services:
     depends_on:
       - api
     ports:
-      - "3000:80"
+      - "3000:8080"
 
 volumes:
   mongo-data:

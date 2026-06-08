@@ -20,5 +20,5 @@ COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/apps/api/node_modules apps/api/node_modules
 COPY --from=build /app/apps/api/dist apps/api/dist
 
-EXPOSE 8080
-CMD ["npm", "run", "start", "-w", "apps/api"]
+EXPOSE 8765
+CMD ["node", "apps/api/dist/server.js"]
