@@ -6,7 +6,7 @@ data:
   NODE_ENV: production
   PORT: "8765"
   ADMIN_EMAIL: admin@example.com
-  HOLMES_API_URL: https://holmes.observestack.fis-cloud.xplat.online
+  HOLMES_API_URL: http://aiops-stack-holmes.obs-aiops.svc.cluster.local:5050
   HOLMES_API_VERIFY_SSL: "false"
   HOLMES_STREAM_IDLE_TIMEOUT_MS: "120000"
   OIDC_ISSUER_URL: ""
@@ -16,4 +16,4 @@ data:
   OIDC_DEFAULT_ROLE: viewer
   DEFAULT_MODEL: cloud-escalate
   DEFAULT_TIMEZONE: Asia/Ho_Chi_Minh
-  CORS_ORIGIN: https://holmes-ui.example.com
+  CORS_ORIGIN: https://holmes-ui.observestack.fis-cloud.xplat.online

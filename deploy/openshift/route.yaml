@@ -2,11 +2,11 @@ apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   name: holmes-ui
-  namespace: holmes-ui
+  namespace: obs-holmes-ui
   annotations:
     haproxy.router.openshift.io/timeout: 600s
 spec:
-  host: holmes-ui.apps.example.com
+  host: holmes-ui.observestack.fis-cloud.xplat.online
   to:
     kind: Service
     name: web

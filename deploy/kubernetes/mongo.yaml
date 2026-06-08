@@ -37,7 +37,7 @@ spec:
     spec:
       containers:
         - name: mongo
-          image: mongo:8
+          image: docker.io/library/mongo:8
           imagePullPolicy: IfNotPresent
           ports:
             - name: mongodb

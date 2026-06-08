@@ -37,20 +37,20 @@ oc apply -k deploy/openshift
 If the GHCR packages are private, create and attach an image pull secret first:
 
 ```bash
-oc -n holmes-ui create secret docker-registry ghcr-pull-secret \
+oc -n obs-holmes-ui create secret docker-registry ghcr-pull-secret \
   --docker-server=ghcr.io \
   --docker-username=<github-username> \
   --docker-password=<github-token-with-read-packages>
-oc -n holmes-ui secrets link default ghcr-pull-secret --for=pull
+oc -n obs-holmes-ui secrets link default ghcr-pull-secret --for=pull
 ```
 
 ## Verify
 
 ```bash
-oc -n holmes-ui get pods
-oc -n holmes-ui get route holmes-ui
-oc -n holmes-ui logs deploy/api
-oc -n holmes-ui port-forward svc/web 8080:80
+oc -n obs-holmes-ui get pods
+oc -n obs-holmes-ui get route holmes-ui
+oc -n obs-holmes-ui logs deploy/api
+oc -n obs-holmes-ui port-forward svc/web 8080:80
 curl http://localhost:8080/api/health
 ```
 
@@ -60,6 +60,8 @@ Open the Route URL over HTTPS and log in with `ADMIN_EMAIL` and `ADMIN_PASSWORD`
 
 - The web container listens on unprivileged port `8080`, while the service still exposes port `80`.
 - The Route uses edge TLS and redirects HTTP to HTTPS, which is required for production login cookies.
-- If the GHCR packages are private, create an OpenShift image pull secret and attach it to the `default` service account in the `holmes-ui` namespace.
+- `HOLMES_API_URL` points at the internal Holmes service DNS name so API pods do not depend on external Route DNS from inside the cluster.
+- If the GHCR packages are private, create an OpenShift image pull secret and attach it to the `default` service account in the `obs-holmes-ui` namespace.
 - The included MongoDB StatefulSet is useful for a simple self-contained install. For production, prefer your platform MongoDB/operator and point `MONGODB_URI` at that service.
 - MongoDB credentials are initialized only when the Mongo data PVC is empty.
+- The Mongo image is fully qualified as `docker.io/library/mongo:8` so OpenShift does not resolve the short name through a private registry search path.

@@ -59,9 +59,9 @@ oc apply -k deploy/openshift
 ## Verify
 
 ```bash
-kubectl -n holmes-ui get pods
-kubectl -n holmes-ui logs deploy/api
-kubectl -n holmes-ui port-forward svc/web 8080:80
+kubectl -n obs-holmes-ui get pods
+kubectl -n obs-holmes-ui logs deploy/api
+kubectl -n obs-holmes-ui port-forward svc/web 8080:80
 curl http://localhost:8080/api/health
 ```
 
@@ -70,6 +70,8 @@ Then open the public HTTPS hostname and log in with `ADMIN_EMAIL` and `ADMIN_PAS
 ## Notes
 
 - Only the `web` service should be exposed publicly. The web container proxies `/api` to the internal `api` service on port `8765`.
+- `HOLMES_API_URL` points at the internal Holmes service DNS name so API pods do not depend on external Route DNS from inside the cluster.
 - Production cookies are marked `Secure`, so the public route should use HTTPS.
 - `ADMIN_PASSWORD` only creates the first admin if the database has no admin user yet.
 - MongoDB credentials are only initialized on an empty Mongo data volume.
+- The Mongo image is fully qualified as `docker.io/library/mongo:8` so OpenShift does not resolve the short name through a private registry search path.
