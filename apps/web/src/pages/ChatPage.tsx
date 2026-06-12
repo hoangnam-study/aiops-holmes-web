@@ -123,9 +123,9 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const baseTextRef = useRef("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+  const baseTextRef = useRef("");
   const voiceSupported = useMemo(() => "SpeechRecognition" in window || "webkitSpeechRecognition" in window, []);
 
   const settingsQuery = useQuery({
@@ -425,14 +425,15 @@ export default function ChatPage() {
       return;
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const Ctor: typeof SpeechRecognition = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
-    const recognition = new Ctor();
+    const w = window as any;
+    const recognition = new (w.SpeechRecognition ?? w.webkitSpeechRecognition)();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
     baseTextRef.current = ask;
 
-    recognition.onresult = (event) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const text = event.results[i][0].transcript;
