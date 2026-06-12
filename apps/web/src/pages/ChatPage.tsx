@@ -27,6 +27,7 @@ import AddIcon from "@mui/icons-material/Add";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import BlockIcon from "@mui/icons-material/Block";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import MicIcon from "@mui/icons-material/Mic";
 import SearchIcon from "@mui/icons-material/Search";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -51,6 +52,38 @@ const promptCards = [
   {
     title: "Exposed Secrets",
     text: "Are any of my workloads leaking secrets or risky environment values?"
+  },
+  {
+    title: "Crash Loops",
+    text: "Are there any pods in CrashLoopBackOff or OOMKilled state right now?"
+  },
+  {
+    title: "Resource Hogs",
+    text: "Which pods or deployments are consuming the most CPU and memory?"
+  },
+  {
+    title: "Failed Deploys",
+    text: "Show me any deployments that have failed or are stuck in the last 24 hours."
+  },
+  {
+    title: "Firing Alerts",
+    text: "What alerts are currently firing and which have been unacknowledged the longest?"
+  },
+  {
+    title: "Network Issues",
+    text: "Are there any high error rates or connectivity issues between services?"
+  },
+  {
+    title: "Cert Expiry",
+    text: "Are any TLS certificates expiring soon across my services or ingresses?"
+  },
+  {
+    title: "Cost Waste",
+    text: "Which workloads are over-provisioned and could have their resource requests reduced?"
+  },
+  {
+    title: "Recent Changes",
+    text: "What configuration or deployment changes happened in the last hour that could explain current issues?"
   }
 ];
 
@@ -89,6 +122,11 @@ export default function ChatPage() {
   const [requireApproval, setRequireApproval] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const baseTextRef = useRef("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const voiceSupported = useMemo(() => "SpeechRecognition" in window || "webkitSpeechRecognition" in window, []);
 
   const settingsQuery = useQuery({
     queryKey: ["settings"],
@@ -381,6 +419,47 @@ export default function ChatPage() {
     abortRef.current?.abort();
   };
 
+  const toggleVoice = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Ctor: typeof SpeechRecognition = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    const recognition = new Ctor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    baseTextRef.current = ask;
+
+    recognition.onresult = (event) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const text = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          baseTextRef.current = (baseTextRef.current + " " + text).trim();
+        } else {
+          interim += text;
+        }
+      }
+      setAsk((baseTextRef.current + (interim ? " " + interim : "")).trim());
+    };
+    const cleanup = () => {
+      setListening(false);
+      recognitionRef.current = null;
+    };
+    recognition.onend = cleanup;
+    recognition.onerror = cleanup;
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  };
+
+  useEffect(() => {
+    return () => { recognitionRef.current?.stop(); };
+  }, []);
+
   const handleAskKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
     event.preventDefault();
@@ -447,30 +526,60 @@ export default function ChatPage() {
                 <SmartToyIcon sx={{ fontSize: 42, color: "secondary.main" }} />
                 <Typography variant="h4">Meet Holmes, your SRE Agent</Typography>
               </Stack>
-              <Stack direction="row" spacing={1.5} sx={{ width: "100%", maxWidth: 860 }}>
-                {promptCards.map((card) => (
-                  <Paper
-                    key={card.title}
-                    elevation={0}
-                    onClick={(event) => void submit(event, card.text)}
-                    sx={{
-                      flex: 1,
-                      p: 2,
-                      border: "1px solid",
-                      borderColor: "divider",
-                      cursor: "pointer",
-                      "&:hover": { borderColor: "primary.main", bgcolor: "#f9fbff" }
-                    }}
-                  >
-                    <Typography variant="subtitle2" fontWeight={800}>
-                      {card.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {card.text}
-                    </Typography>
-                  </Paper>
-                ))}
-              </Stack>
+              <Box
+                sx={{
+                  width: "100%",
+                  maxWidth: 900,
+                  overflowX: "auto",
+                  pb: 0.5,
+                  "&::-webkit-scrollbar": { height: 4 },
+                  "&::-webkit-scrollbar-thumb": { borderRadius: 2, bgcolor: "divider" }
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateRows: "1fr 1fr",
+                    gridAutoFlow: "column",
+                    gridAutoColumns: 192,
+                    gap: 1.5,
+                    width: "max-content"
+                  }}
+                >
+                  {promptCards.map((card) => (
+                    <Paper
+                      key={card.title}
+                      elevation={0}
+                      onClick={(event) => void submit(event, card.text)}
+                      sx={{
+                        p: 1.5,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        cursor: "pointer",
+                        userSelect: "none",
+                        "&:hover": { borderColor: "primary.main", bgcolor: "#f9fbff" }
+                      }}
+                    >
+                      <Typography variant="subtitle2" fontWeight={800} noWrap>
+                        {card.title}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          mt: 0.5,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden"
+                        }}
+                      >
+                        {card.text}
+                      </Typography>
+                    </Paper>
+                  ))}
+                </Box>
+              </Box>
             </Stack>
           ) : (
             <Stack spacing={2.5} sx={{ maxWidth: 980, mx: "auto" }}>
@@ -592,14 +701,14 @@ export default function ChatPage() {
               mx: "auto",
               p: 1,
               border: "1px solid",
-              borderColor: streaming ? "primary.main" : "divider"
+              borderColor: listening ? "error.main" : streaming ? "primary.main" : "divider"
             }}
           >
             <TextField
               value={ask}
               onChange={(event) => setAsk(event.target.value)}
               onKeyDown={handleAskKeyDown}
-              placeholder="Ask anything. Use @ to reference resources or alerts."
+              placeholder={listening ? "Listening… speak your prompt" : "Ask anything. Use @ to reference resources or alerts."}
               multiline
               minRows={2}
               maxRows={6}
@@ -609,18 +718,37 @@ export default function ChatPage() {
                 disableUnderline: true,
                 endAdornment: (
                   <InputAdornment position="end">
-                    <Tooltip title={streaming ? "Stop" : "Send"}>
-                      <span>
-                        <IconButton
-                          type={streaming ? "button" : "submit"}
-                          color={streaming ? "error" : "primary"}
-                          disabled={!streaming && !ask.trim()}
-                          onClick={streaming ? stopStreaming : undefined}
-                        >
-                          {streaming ? <StopCircleOutlinedIcon /> : <ArrowUpwardIcon />}
-                        </IconButton>
-                      </span>
-                    </Tooltip>
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      {voiceSupported ? (
+                        <Tooltip title={listening ? "Stop recording" : "Speak your prompt"}>
+                          <IconButton
+                            onClick={toggleVoice}
+                            color={listening ? "error" : "default"}
+                            sx={listening ? {
+                              "@keyframes mic-pulse": {
+                                "0%, 100%": { opacity: 1 },
+                                "50%": { opacity: 0.35 }
+                              },
+                              animation: "mic-pulse 1.4s ease-in-out infinite"
+                            } : undefined}
+                          >
+                            <MicIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      ) : null}
+                      <Tooltip title={streaming ? "Stop" : "Send"}>
+                        <span>
+                          <IconButton
+                            type={streaming ? "button" : "submit"}
+                            color={streaming ? "error" : "primary"}
+                            disabled={!streaming && !ask.trim()}
+                            onClick={streaming ? stopStreaming : undefined}
+                          >
+                            {streaming ? <StopCircleOutlinedIcon /> : <ArrowUpwardIcon />}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </Stack>
                   </InputAdornment>
                 )
               }}

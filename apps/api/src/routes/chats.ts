@@ -274,7 +274,8 @@ router.post(
       model: input.model,
       visibility: input.visibility ?? "private",
       createdBy: req.user!._id,
-      conversationHistory: []
+      conversationHistory: [],
+      lastMessageAt: new Date()
     });
     res.status(201).json({ thread });
   })
